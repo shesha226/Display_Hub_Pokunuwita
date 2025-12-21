@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import dbPromise from "../config/db";
 
 /**
- * CREATE ORDER (SECURE)
+ * CREATE ORDER (SECURE) with auto invoice_number
  */
 export const createOrder = async (req: Request, res: Response) => {
   const { customer_id, items } = req.body;
@@ -16,14 +16,26 @@ export const createOrder = async (req: Request, res: Response) => {
 
     await conn.beginTransaction();
 
+    // 1️⃣ Generate next invoice_number
+    const [invoiceRows]: any = await conn.query(
+      `SELECT IFNULL(
+          CONCAT('ORD', LPAD(CAST(SUBSTRING(MAX(invoice_number), 4) AS UNSIGNED)+1, 4, '0')),
+          'ORD0001'
+        ) AS next_invoice
+       FROM orders`
+    );
+    const invoice_number = invoiceRows[0].next_invoice;
+
+    // 2️⃣ Insert order with invoice_number
     const [orderResult]: any = await conn.query(
-      "INSERT INTO orders (customer_id, total_amount) VALUES (?, 0)",
-      [customer_id]
+      "INSERT INTO orders (customer_id, total_amount, invoice_number) VALUES (?, 0, ?)",
+      [customer_id, invoice_number]
     );
 
     const orderId = orderResult.insertId;
     let totalAmount = 0;
 
+    // 3️⃣ Process order items
     for (const item of items) {
       if (!item.accessory_id || !item.quantity || item.quantity <= 0) {
         throw new Error("Invalid item data");
@@ -62,15 +74,18 @@ export const createOrder = async (req: Request, res: Response) => {
       );
     }
 
+    // 4️⃣ Update total_amount
     await conn.query("UPDATE orders SET total_amount = ? WHERE id = ?", [
       totalAmount,
       orderId,
     ]);
+
     await conn.commit();
 
     res.status(201).json({
       message: "Order created successfully ✅",
       order_id: orderId,
+      invoice_number,
       total_amount: totalAmount,
     });
   } catch (error: any) {
@@ -82,7 +97,7 @@ export const createOrder = async (req: Request, res: Response) => {
 };
 
 /**
- * GET ALL ORDERS
+ * GET ALL ORDERS (include invoice_number)
  */
 export const getAllOrders = async (req: Request, res: Response) => {
   try {
@@ -91,6 +106,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
     const [rows] = await db.query(`
       SELECT 
         o.id,
+        o.invoice_number,
         c.name AS customer_name,
         c.phone AS customer_phone,
         o.total_amount,
@@ -108,7 +124,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
 };
 
 /**
- * GET ORDER BY ID (with items)
+ * GET ORDER BY ID (with items and invoice_number)
  */
 export const getOrderById = async (req: Request, res: Response) => {
   try {
@@ -116,7 +132,8 @@ export const getOrderById = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     const [order]: any = await db.query(
-      `SELECT o.id, o.total_amount, o.created_at, c.name AS customer_name, c.phone AS customer_phone
+      `SELECT o.id, o.invoice_number, o.total_amount, o.created_at, 
+              c.name AS customer_name, c.phone AS customer_phone
        FROM orders o
        LEFT JOIN customers c ON o.customer_id = c.id
        WHERE o.id = ?`,
@@ -178,18 +195,13 @@ export const deleteOrder = async (req: Request, res: Response) => {
     conn.release();
   }
 };
+
 /**
- * UPDATE ORDER (secure)
+ * UPDATE ORDER (secure, with items)
  */
 export const updateOrder = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { customer_id, items } = req.body;
-  /**
-   * items = [
-   *   { accessory_id: 1, quantity: 2 },
-   *   { accessory_id: 3, quantity: 1 }
-   * ]
-   */
 
   const pool = await dbPromise;
   const conn = await pool.getConnection();
@@ -201,21 +213,19 @@ export const updateOrder = async (req: Request, res: Response) => {
 
     await conn.beginTransaction();
 
-    // 1️⃣ Update customer_id if provided
+    // Update customer_id if provided
     if (customer_id) {
       const [custResult]: any = await conn.query(
         "UPDATE orders SET customer_id = ? WHERE id = ?",
         [customer_id, id]
       );
-      if (custResult.affectedRows === 0) {
-        throw new Error("Order not found");
-      }
+      if (custResult.affectedRows === 0) throw new Error("Order not found");
     }
 
     let totalAmount = 0;
 
     if (items && items.length > 0) {
-      // 2️⃣ Restore stock from existing items
+      // Restore stock from existing items
       const [existingItems]: any = await conn.query(
         "SELECT accessory_id, quantity FROM order_items WHERE order_id = ?",
         [id]
@@ -228,10 +238,10 @@ export const updateOrder = async (req: Request, res: Response) => {
         );
       }
 
-      // 3️⃣ Delete existing order items
+      // Delete old items
       await conn.query("DELETE FROM order_items WHERE order_id = ?", [id]);
 
-      // 4️⃣ Insert new items and reduce stock
+      // Insert new items
       for (const item of items) {
         const [rows]: any = await conn.query(
           "SELECT price, discount, qty_on_hand FROM accessories WHERE id = ? FOR UPDATE",
@@ -239,7 +249,6 @@ export const updateOrder = async (req: Request, res: Response) => {
         );
 
         if (rows.length === 0) throw new Error("Accessory not found");
-
         const { price, discount, qty_on_hand } = rows[0];
 
         if (qty_on_hand < item.quantity) {
@@ -271,7 +280,7 @@ export const updateOrder = async (req: Request, res: Response) => {
         );
       }
 
-      // 5️⃣ Update total_amount in orders table
+      // Update total_amount
       await conn.query("UPDATE orders SET total_amount = ? WHERE id = ?", [
         totalAmount,
         id,

@@ -217,26 +217,39 @@ export const updateAccessory = async (req: Request, res: Response) => {
 };
 
 //deleteAccessoryById
-
 export const deleteAccessory = async (req: Request, res: Response) => {
   try {
     const db = await dbPromise;
-    const id = req.params.id;
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
 
-    const [existingAccessory] = await db.query(
-      "SELECT id FROM accessories WHERE id = ?",
-      [id]
-    );
-
-    if ((existingAccessory as any).length === 0) {
+    // Check if accessory exists
+    const [rows] = await db.query("SELECT id FROM accessories WHERE id = ?", [
+      id,
+    ]);
+    if ((rows as any).length === 0) {
       return res.status(404).json({ message: "Accessory not found" });
     }
 
-    await db.query("DELETE FROM accessories WHERE id = ?", [id]);
+    // Check if accessory is used in orders
+    const [used] = await db.query(
+      "SELECT * FROM order_items WHERE accessory_id = ?",
+      [id]
+    );
 
+    if ((used as any).length > 0) {
+      return res.status(400).json({
+        message: "Cannot delete accessory. It is used in existing orders.",
+      });
+    }
+
+    // Safe to delete
+    await db.query("DELETE FROM accessories WHERE id = ?", [id]);
     return res.status(200).json({ message: "Accessory deleted successfully" });
   } catch (err) {
     console.error("Error deleting accessory:", err);
-    res.status(500).json({ message: "Internal Server Error", error: err });
+    return res
+      .status(500)
+      .json({ message: "Internal Server Error", error: err });
   }
 };
