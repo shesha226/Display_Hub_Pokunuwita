@@ -1,82 +1,48 @@
 import { Request, Response } from "express";
-import dbPromise from "../config/db";
+import * as service from "../services/orderItemService";
 
 /**
  * CREATE ORDER ITEM
  */
 export const createOrderItem = async (req: Request, res: Response) => {
   try {
-    const { order_id, accessory_id, quantity, price, discount } = req.body;
+    const id = await service.createOrderItem(req.body);
+    return res
+      .status(201)
+      .json({ message: "Order item created successfully", id });
+  } catch (err: any) {
+    console.error("Error creating order item:", err.message);
+    return res.status(400).json({ message: err.message });
+  }
+};
 
-    if (!order_id || !accessory_id || !quantity || !price) {
-      return res.status(400).json({
-        message: "order_id, accessory_id, quantity, and price are required",
-      });
-    }
-
-    const final_price = price * quantity - (discount || 0);
-
-    const db = await dbPromise;
-
-    const [result] = await db.query(
-      `INSERT INTO order_items 
-       (order_id, accessory_id, quantity, price, discount, final_price)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [order_id, accessory_id, quantity, price, discount || 0, final_price]
-    );
-
-    return res.status(201).json({
-      message: "Order item added successfully",
-      order_item_id: (result as any).insertId,
-    });
-  } catch (err) {
-    console.error("Error creating order item:", err);
+/**
+ * GET ALL ITEMS
+ */
+export const getOrderItems = async (req: Request, res: Response) => {
+  try {
+    const items = await service.getItems();
+    return res.json(items);
+  } catch (err: any) {
+    console.error("Error fetching order items:", err.message);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
 /**
- * GET ALL ITEMS FOR AN ORDER
+ * GET ITEM BY ID
  */
-export const getOrderItemsByOrderId = async (req: Request, res: Response) => {
-  try {
-    const { order_id } = req.params;
-    const db = await dbPromise;
-
-    const [rows] = await db.query(
-      `SELECT oi.*, a.item_name, a.price AS accessory_price
-       FROM order_items oi
-       LEFT JOIN accessories a ON oi.accessory_id = a.id
-       WHERE oi.order_id = ?`,
-      [order_id]
-    );
-
-    return res.json(rows);
-  } catch (err) {
-    console.error("Error fetching order items:", err);
-    return res.status(500).json({ message: "Internal Server Error" });
-  }
-};
-
-//Get order item by id
 export const getOrderItemById = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const db = await dbPromise;
-    const [rows] = await db.query(
-      `SELECT oi.*, a.item_name, a.price AS accessory_price
-       FROM order_items oi
-       LEFT JOIN accessories a ON oi.accessory_id = a.id
-       WHERE oi.id = ?`,
-      [id]
-    );
-    if ((rows as any).length === 0) {
-      return res.status(404).json({ message: "Order item not found" });
-    }
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
 
-    return res.json((rows as any)[0]);
-  } catch (err) {
-    console.error("Error fetching order item:", err);
+    const item = await service.getItem(id);
+    if (!item) return res.status(404).json({ message: "Not found" });
+
+    return res.json(item);
+  } catch (err: any) {
+    console.error("Error fetching order item:", err.message);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
@@ -86,34 +52,15 @@ export const getOrderItemById = async (req: Request, res: Response) => {
  */
 export const updateOrderItem = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const { quantity, price, discount } = req.body;
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
 
-    if (!quantity && !price && discount === undefined) {
-      return res
-        .status(400)
-        .json({ message: "At least one field is required" });
-    }
-
-    const db = await dbPromise;
-
-    // Calculate final_price if any relevant fields are provided
-    const final_price = (price || 0) * (quantity || 0) - (discount || 0);
-
-    const [result] = await db.query(
-      `UPDATE order_items 
-       SET quantity = ?, price = ?, discount = ?, final_price = ?
-       WHERE id = ?`,
-      [quantity, price, discount || 0, final_price, id]
-    );
-
-    if ((result as any).affectedRows === 0) {
-      return res.status(404).json({ message: "Order item not found" });
-    }
+    const affected = await service.updateorderitems(id, req.body);
+    if (!affected) return res.status(404).json({ message: "Not found" });
 
     return res.json({ message: "Order item updated successfully" });
-  } catch (err) {
-    console.error("Error updating order item:", err);
+  } catch (err: any) {
+    console.error("Error updating order item:", err.message);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
@@ -123,20 +70,15 @@ export const updateOrderItem = async (req: Request, res: Response) => {
  */
 export const deleteOrderItem = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const db = await dbPromise;
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
 
-    const [result] = await db.query("DELETE FROM order_items WHERE id = ?", [
-      id,
-    ]);
+    const affected = await service.deleteOrderItem(id);
+    if (!affected) return res.status(404).json({ message: "Not found" });
 
-    if ((result as any).affectedRows === 0) {
-      return res.status(404).json({ message: "Order item not found" });
-    }
-
-    return res.json({ message: "Order item deleted successfully" });
-  } catch (err) {
-    console.error("Error deleting order item:", err);
+    return res.json({ message: "Deleted" });
+  } catch (err: any) {
+    console.error("Error deleting order item:", err.message);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
