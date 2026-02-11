@@ -1,48 +1,45 @@
-import * as repo from "../repositories/orderItemRepository";
+import { OrderItemRepository } from "../repositories/orderItemRepository";
 
-export const createOrderItem = async (data: any) => {
-  const { order_id, accessory_id, quantity, price, discount = 0 } = data;
-
-  if (!order_id || !accessory_id || !quantity || !price) {
-    throw new Error("order_id, accessory_id, quantity, and price are required");
+class OrderItemService {
+  async createOrderItem(data: any) {
+    const existing = await OrderItemRepository.getOrderItemById(data.id);
+    if (existing) {
+      throw new Error("Order item already exists");
+    }
+    return OrderItemRepository.insertOrderItem(data);
   }
 
-  const final_price = price * quantity - discount;
-  const result: any = await repo.insertOrderItem(
-    Number(order_id),
-    Number(accessory_id),
-    Number(quantity),
-    Number(price),
-    Number(discount),
-    final_price
-  );
+  async updateOrderItem(id: number, data: any) {
+    const existing = await OrderItemRepository.getOrderItemById(data.id);
+    if (!existing) {
+      throw new Error("Order item not found");
+    }
 
-  return result.insertId;
-};
+    return OrderItemRepository.updateOrderItem(id, data);
+  }
 
-export const updateorderitems = async (id: number, data: any) => {
-  const { quantity = 0, price = 0, discount = 0 } = data;
-  const final_price = price * quantity - discount;
+  async deleteOrderItem(id: number) {
+    const existing = await OrderItemRepository.getOrderItemById(id);
+    if (!existing) {
+      throw new Error("Order item not found");
+    }
+    return OrderItemRepository.deleteOrderItem(id);
+  }
 
-  const result: any = await repo.updateOrderItem(
-    id,
-    Number(quantity),
-    Number(price),
-    Number(discount),
-    final_price
-  );
+  async getAllOrderItems() {
+    const existing = await OrderItemRepository.getAllOrderItems();
+    if (!existing) {
+      throw new Error("Order items not found");
+    }
+    return OrderItemRepository.getAllOrderItems();
+  }
 
-  return result.affectedRows;
-};
-
-export const getItems = async () => repo.getAllOrderItems();
-
-export const getItem = async (id: number) => {
-  const rows: any = await repo.getOrderItemById(id);
-  return rows.length ? rows[0] : null;
-};
-
-export const deleteOrderItem = async (id: number) => {
-  const result: any = await repo.deleteOrderItem(id);
-  return result.affectedRows;
-};
+  async getOrderItemById(id: number) {
+    const existing = await OrderItemRepository.getOrderItemById(id);
+    if (!existing) {
+      throw new Error("Order item not found");
+    }
+    return OrderItemRepository.getOrderItemById(id);
+  }
+}
+export const orderItemService = new OrderItemService();

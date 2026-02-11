@@ -1,115 +1,71 @@
-import * as repo from "../repositories/accessoryRepository";
+import { AccessoryRepository } from "../repositories/accessoryRepository";
 
-export const createAccessory = async (data: any) => {
-  const {
-    category,
-    item_name,
-    item_number,
-    price,
-    discount = 0,
-    offer_price = 0,
-    qty_on_hand,
-  } = data;
+class AccessoryService {
+  async createAccessory(data: any) {
+    const exisiting = await AccessoryRepository.findAccessoryByNameOrNumber(data.item_name, data.item_number);
+    if (exisiting) {
+      throw new Error("Accessory already exists");
+    }
 
-  if (
-    !category?.trim() ||
-    !item_name?.trim() ||
-    !item_number?.trim() ||
-    price == null ||
-    qty_on_hand == null
-  ) {
-    throw new Error("All fields are required");
+    return AccessoryRepository.insertAccessory({
+      ...data,
+      discount: data.discount || 0,
+      offer_price: data.offer_price || 0,
+    })
+
   }
 
-  // Check duplicates
-  const existing = await repo.findAccessoryByNameOrNumber(
-    item_name,
-    item_number
-  );
-  if ((existing as any).length > 0) {
-    throw new Error("Accessory with this name or number already exists");
+  async getAccessory(id: number) {
+    const Accessory = await AccessoryRepository.getAccessoryById(id);
+    if (!Accessory) {
+      throw new Error("Accessory not found");
+    }
+    return Accessory;
+
   }
 
-  const result: any = await repo.insertAccessory(
-    category,
-    item_name,
-    item_number,
-    Number(price),
-    Number(discount),
-    Number(offer_price),
-    Number(qty_on_hand)
-  );
+  async getAllAccessories() {
+    return AccessoryRepository.getAllAccessories();
 
-  const rows: any = await repo.getAccessoryById(result.insertId);
-  return rows[0];
-};
-
-export const getAccessory = async (id: number) => {
-  const rows: any = await repo.getAccessoryById(id);
-  return rows.length ? rows[0] : null;
-};
-
-export const getAllAccessories = async () => {
-  const rows: any = await repo.getAllAccessories();
-  return rows;
-};
-
-export const updateAccessory = async (id: number, data: any) => {
-  const {
-    category,
-    item_name,
-    item_number,
-    price,
-    discount = 0,
-    offer_price = 0,
-    qty_on_hand,
-  } = data;
-
-  if (
-    !category?.trim() ||
-    !item_name?.trim() ||
-    !item_number?.trim() ||
-    price == null ||
-    qty_on_hand == null
-  ) {
-    throw new Error("All fields are required");
   }
 
-  const accessory = await repo.getAccessoryById(id);
-  if ((accessory as any).length === 0) throw new Error("Accessory not found");
+  async updateAccessory(id: number, data: any) {
+    const exisiting = await AccessoryRepository.getAccessoryById(id);
+    if (!exisiting) {
+      throw new Error("Accessory not found");
+    }
+    if (data.item_name || data.item_number) {
+      const duplicate = await AccessoryRepository.findAccessoryByNameOrNumber(data.item_name, data.item_number, id);
+      if (duplicate) {
+        throw new Error("Accessory already exists");
+      }
+    }
+    return AccessoryRepository.updateAccessory(id, {
+      category: data.category ?? exisiting.category,
+      item_name: data.item_name ?? exisiting.item_name,
+      item_number: data.item_number ?? exisiting.item_number,
+      price: data.price ?? exisiting.price,
+      discount: data.discount ?? exisiting.discount,
+      offer_price: data.offer_price ?? exisiting.offer_price,
+      qty_on_hand: data.qty_on_hand ?? exisiting.qty_on_hand
+    });
 
-  // Check duplicates excluding current id
-  const existing = await repo.findAccessoryByNameOrNumber(
-    item_name,
-    item_number,
-    id
-  );
-  if ((existing as any).length > 0)
-    throw new Error("Accessory with this name or number already exists");
+  }
 
-  const result: any = await repo.updateAccessory(
-    id,
-    category,
-    item_name,
-    item_number,
-    Number(price),
-    Number(discount),
-    Number(offer_price),
-    Number(qty_on_hand)
-  );
+  async deleteAccessory(id: number) {
 
-  const updatedRows: any = await repo.getAccessoryById(id);
-  return updatedRows[0];
-};
+    const exisiting = await AccessoryRepository.getAccessoryById(id);
+    if (!exisiting) {
+      throw new Error("Accessory not found");
+    }
 
-export const deleteAccessory = async (id: number) => {
-  const accessory = await repo.getAccessoryById(id);
-  if ((accessory as any).length === 0) throw new Error("Accessory not found");
+    const used = await AccessoryRepository.checkAccessoryUsedInOrders(id);
+    if (used) {
+      throw { status: 400, message: "Accessory is used in orders and cannot be deleted" };
+    }
+    return AccessoryRepository.deleteAccessory(id);
 
-  const used = await repo.checkAccessoryUsedInOrders(id);
-  if ((used as any).length > 0)
-    throw new Error("Cannot delete accessory. It is used in existing orders.");
 
-  const result: any = await repo.deleteAccessory(id);
-  return result.affectedRows;
-};
+  }
+}
+export const accessoryService = new AccessoryService();

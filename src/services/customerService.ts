@@ -1,46 +1,51 @@
-import * as repo from "../repositories/customerRepository";
+import { CustomerRepository } from "../repositories/customerRepository";
 
-export const createCustomer = async (data: any) => {
-  const { name, email, address, phone } = data;
-
-  if (!name?.trim() || !email?.trim() || !address?.trim() || !phone?.trim()) {
-    throw new Error("All fields are required");
+class CustomerService {
+  async createCustomer(data: any) {
+    const exisiting = await CustomerRepository.getCustomerByEmail(data.email);
+    if (exisiting) {
+      throw new Error("Customer already exists");
+    }
+    return CustomerRepository.insertCustomer(data.name, data.email, data.address, data.phone);
   }
 
-  const existing: any = await repo.getCustomerByEmail(email);
-  if (existing.length > 0) {
-    throw new Error("Email already exists");
+  async getCutomerbyId(id: number) {
+    const customer = await CustomerRepository.getCustomerById(id);
+    if (!customer) {
+      throw new Error("Customer not found");
+    }
+    return customer;
   }
 
-  const result: any = await repo.insertCustomer(name, email, address, phone);
-  return result.insertId;
-};
+  async getAllCustomers() {
+    return CustomerRepository.getAllCustomers();
+  }
 
-export const getCustomers = async () => {
-  const rows: any = await repo.getAllCustomers();
-  return rows;
-};
+  async updateCustomer(id: number, data: any) {
+    const customer = await CustomerRepository.getCustomerById(id);
+    if (!customer) {
+      throw new Error("Customer not found");
+    }
+    if (data.email) {
+      const existing = await CustomerRepository.getCustomerByEmail(data.email);
+      if (existing) {
+        throw new Error("Customer already exists");
+      }
+    }
+    return CustomerRepository.updateCustomer(id, {
+      name: data.name ?? customer.name,
+      email: data.email ?? customer.email,
+      phone: data.phone ?? customer.phone,
+      address: data.address ?? customer.address,
+    });
+  }
 
-export const updateCustomer = async (id: number, data: any) => {
-  const { name, email, address, phone } = data;
-
-  const existing: any = await repo.getCustomerById(id);
-  if (existing.length === 0) throw new Error("Customer not found");
-
-  const result: any = await repo.updateCustomer(
-    id,
-    name,
-    email,
-    address,
-    phone
-  );
-  return result.affectedRows;
-};
-
-export const deleteCustomer = async (id: number) => {
-  const existing: any = await repo.getCustomerById(id);
-  if (existing.length === 0) throw new Error("Customer not found");
-
-  const result: any = await repo.deleteCustomer(id);
-  return result.affectedRows;
-};
+  async deleteCustomer(id: number) {
+    const customer = await CustomerRepository.getCustomerById(id);
+    if (!customer) {
+      throw new Error("Customer not found");
+    }
+    return CustomerRepository.deleteCustomer(id);
+  }
+}
+export const customerService = new CustomerService();

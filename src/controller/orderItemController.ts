@@ -1,12 +1,10 @@
-import { Request, Response } from "express";
-import * as service from "../services/orderItemService";
+import { Request, Response, NextFunction } from "express";
+import { orderItemService } from "../services/orderItemService";
 
-/**
- * CREATE ORDER ITEM
- */
+
 export const createOrderItem = async (req: Request, res: Response) => {
   try {
-    const id = await service.createOrderItem(req.body);
+    const id = await orderItemService.createOrderItem(req.body);
     return res
       .status(201)
       .json({ message: "Order item created successfully", id });
@@ -16,12 +14,10 @@ export const createOrderItem = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * GET ALL ITEMS
- */
+
 export const getOrderItems = async (req: Request, res: Response) => {
   try {
-    const items = await service.getItems();
+    const items = await orderItemService.getAllOrderItems();
     return res.json(items);
   } catch (err: any) {
     console.error("Error fetching order items:", err.message);
@@ -29,15 +25,12 @@ export const getOrderItems = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * GET ITEM BY ID
- */
 export const getOrderItemById = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
 
-    const item = await service.getItem(id);
+    const item = await orderItemService.getOrderItemById(id);
     if (!item) return res.status(404).json({ message: "Not found" });
 
     return res.json(item);
@@ -47,15 +40,13 @@ export const getOrderItemById = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * UPDATE ORDER ITEM
- */
+
 export const updateOrderItem = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
 
-    const affected = await service.updateorderitems(id, req.body);
+    const affected = await orderItemService.updateOrderItem(id, req.body);
     if (!affected) return res.status(404).json({ message: "Not found" });
 
     return res.json({ message: "Order item updated successfully" });
@@ -65,15 +56,13 @@ export const updateOrderItem = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * DELETE ORDER ITEM
- */
+
 export const deleteOrderItem = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
 
-    const affected = await service.deleteOrderItem(id);
+    const affected = await orderItemService.deleteOrderItem(id);
     if (!affected) return res.status(404).json({ message: "Not found" });
 
     return res.json({ message: "Deleted" });

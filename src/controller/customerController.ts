@@ -1,44 +1,53 @@
-import { Request, Response } from "express";
-import * as service from "../services/customerService";
+import { Request, Response, NextFunction } from "express";
+import { customerService } from "../services/customerService";
 
-export const createCustomer = async (req: Request, res: Response) => {
+
+export const createCustomer = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const id = await service.createCustomer(req.body);
-    res.status(201).json({ message: "Customer created successfully", id });
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+    const customer = await customerService.createCustomer(req.body);
+    res.status(201).json(customer);
+  } catch (error) {
+    next(error);
   }
 };
 
-export const getAllCustomers = async (_req: Request, res: Response) => {
+export const getAllCustomers = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const customers = await service.getCustomers();
-    res.json({ customers });
-  } catch (err: any) {
-    res.status(500).json({ message: "Internal Server Error" });
+    const customers = await customerService.getAllCustomers();
+    res.status(200).json(customers);
+  } catch (error) {
+    next(error);
   }
 };
 
-export const updateCustomer = async (req: Request, res: Response) => {
-  try {
-    const id = Number(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
-
-    await service.updateCustomer(id, req.body);
-    res.json({ message: "Customer updated successfully" });
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
-export const deleteCustomer = async (req: Request, res: Response) => {
+export const getCustomerById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = Number(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
-
-    await service.deleteCustomer(id);
-    res.json({ message: "Customer deleted successfully" });
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+    const customer = await customerService.getCutomerbyId(id);
+    res.status(200).json(customer);
+  } catch (error) {
+    next(error);
   }
 };
+
+export const updateCustomer = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = Number(req.params.id);
+    const customer = await customerService.updateCustomer(id, req.body);
+    res.status(200).json(customer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteCustomer = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = Number(req.params.id);
+    const customer = await customerService.deleteCustomer(id);
+    res.status(200).json(customer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+

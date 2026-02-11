@@ -1,64 +1,62 @@
-import { Request, Response } from "express";
-import * as service from "../services/accessoryService";
+import { Request, Response, NextFunction } from "express";
+import { accessoryService } from "../services/accessoryService";
 
-export const createAccessory = async (req: Request, res: Response) => {
+export const createAccessory = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const accessory = await service.createAccessory(req.body);
-    return res
-      .status(201)
-      .json({ message: "Accessory created successfully", accessory });
+    const accessory = await accessoryService.createAccessory(req.body);
+    return res.status(201).json({
+      message: "Accessory created successfully",
+      accessory
+    })
   } catch (err: any) {
-    return res.status(400).json({ message: err.message });
+    next(err);
   }
-};
+}
 
-export const getAccessoryById = async (req: Request, res: Response) => {
+export const getAccessory = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const id = Number(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
-
-    const accessory = await service.getAccessory(id);
-    if (!accessory)
-      return res.status(404).json({ message: "Accessory not found" });
-
-    return res.json(accessory);
+    const accessory = await accessoryService.getAccessory(Number(req.params.id));
+    return res.status(200).json({
+      message: "Accessory fetched successfully",
+      accessory
+    })
   } catch (err: any) {
-    return res.status(500).json({ message: "Internal Server Error" });
+    next(err);
   }
-};
+}
 
-export const getAllAccessories = async (_req: Request, res: Response) => {
+export const getAllAccessories = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const accessories = await service.getAllAccessories();
-    return res.json({ accessories });
+    const accessories = await accessoryService.getAllAccessories();
+    return res.status(200).json({
+      message: "Accessories fetched successfully",
+      accessories
+    })
   } catch (err: any) {
-    return res.status(500).json({ message: "Internal Server Error" });
+    next(err);
   }
-};
+}
 
-export const updateAccessory = async (req: Request, res: Response) => {
+export const updateAccessory = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const id = Number(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
-
-    const updated = await service.updateAccessory(id, req.body);
-    return res.json({
+    const accessory = await accessoryService.updateAccessory(Number(req.params.id), req.body);
+    return res.status(200).json({
       message: "Accessory updated successfully",
-      accessory: updated,
-    });
+      accessory
+    })
   } catch (err: any) {
-    return res.status(400).json({ message: err.message });
+    next(err);
   }
-};
+}
 
-export const deleteAccessory = async (req: Request, res: Response) => {
+export const deleteAccessory = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const id = Number(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
-
-    await service.deleteAccessory(id);
-    return res.json({ message: "Accessory deleted successfully" });
+    const accessory = await accessoryService.deleteAccessory(Number(req.params.id));
+    return res.status(200).json({
+      message: "Accessory deleted successfully",
+      accessory
+    })
   } catch (err: any) {
-    return res.status(400).json({ message: err.message });
+    next(err);
   }
-};
+}

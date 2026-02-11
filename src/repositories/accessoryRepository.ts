@@ -1,103 +1,128 @@
 import dbPromise from "../config/db";
 
-export const insertAccessory = async (
-  category: string,
-  item_name: string,
-  item_number: string,
-  price: number,
-  discount: number,
-  offer_price: number,
-  qty_on_hand: number
-) => {
-  const db = await dbPromise;
+export const AccessoryRepository = {
 
-  const [result] = await db.query(
-    `INSERT INTO accessories 
-      (category, item_name, item_number, price, discount, offer_price, qty_on_hand)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [
-      category,
-      item_name,
-      item_number,
-      price,
-      discount,
-      offer_price,
-      qty_on_hand,
-    ]
-  );
-  return result;
-};
+  async insertAccessory(data: {
+    category: string;
+    item_name: string;
+    item_number: string;
+    price: number;
+    discount: number;
+    offer_price: number;
+    qty_on_hand: number;
+  }) {
+    const db = await dbPromise;
+    const [result] = await db.query(
+      `INSERT INTO accessories 
+        (category, item_name, item_number, price, discount, offer_price, qty_on_hand)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        data.category,
+        data.item_name,
+        data.item_number,
+        data.price,
+        data.discount,
+        data.offer_price,
+        data.qty_on_hand,
+      ]
+    );
+    return { id: (result as any).insertId };
+  },
 
-export const getAccessoryById = async (id: number) => {
-  const db = await dbPromise;
-  const [rows] = await db.query("SELECT * FROM accessories WHERE id = ?", [id]);
-  return rows;
-};
 
-export const getAllAccessories = async () => {
-  const db = await dbPromise;
-  const [rows] = await db.query("SELECT * FROM accessories");
-  return rows;
-};
+  async getAccessoryById(id: number) {
+    const db = await dbPromise;
+    const [rows]: any = await db.query(
+      "SELECT * FROM accessories WHERE id = ?",
+      [id]
+    );
+    return (rows as any)[0] || null;
+  },
 
-export const updateAccessory = async (
-  id: number,
-  category: string,
-  item_name: string,
-  item_number: string,
-  price: number,
-  discount: number,
-  offer_price: number,
-  qty_on_hand: number
-) => {
-  const db = await dbPromise;
-  const [result] = await db.query(
-    `UPDATE accessories 
-     SET category=?, item_name=?, item_number=?, price=?, discount=?, offer_price=?, qty_on_hand=?
-     WHERE id=?`,
-    [
-      category,
-      item_name,
-      item_number,
-      price,
-      discount,
-      offer_price,
-      qty_on_hand,
-      id,
-    ]
-  );
-  return result;
-};
 
-export const deleteAccessory = async (id: number) => {
-  const db = await dbPromise;
-  const [result] = await db.query("DELETE FROM accessories WHERE id = ?", [id]);
-  return result;
-};
 
-export const checkAccessoryUsedInOrders = async (id: number) => {
-  const db = await dbPromise;
-  const [rows] = await db.query(
-    "SELECT * FROM order_items WHERE accessory_id = ?",
-    [id]
-  );
-  return rows;
-};
+  // Get all accessories
+  async getAllAccessories() {
+    const db = await dbPromise;
+    const [rows] = await db.query(
+      "SELECT * FROM accessories ORDER BY id DESC"
+    );
+    return rows;
+  },
 
-export const findAccessoryByNameOrNumber = async (
-  item_name: string,
-  item_number: string,
-  excludeId?: number
-) => {
-  const db = await dbPromise;
-  let query = "SELECT * FROM accessories WHERE (item_name=? OR item_number=?)";
-  const params: any[] = [item_name, item_number];
+  // Update accessory
+  async updateAccessory(
+    id: number,
+    data: {
+      category: string;
+      item_name: string;
+      item_number: string;
+      price: number;
+      discount: number;
+      offer_price: number;
+      qty_on_hand: number;
+    }
+  ) {
+    const db = await dbPromise;
+    const [result] = await db.query(
+      `UPDATE accessories 
+       SET category=?, item_name=?, item_number=?, price=?, discount=?, offer_price=?, qty_on_hand=?
+       WHERE id=?`,
+      [
+        data.category,
+        data.item_name,
+        data.item_number,
+        data.price,
+        data.discount,
+        data.offer_price,
+        data.qty_on_hand,
+        id,
+      ]
+    );
+    return (result as any).affectedRows > 0;
+  },
 
-  if (excludeId) {
-    query += " AND id != ?";
-    params.push(excludeId);
+  // Delete accessory
+  async deleteAccessory(id: number) {
+    const db = await dbPromise;
+    const [result] = await db.query(
+      "DELETE FROM accessories WHERE id = ?",
+      [id]
+    );
+    return (result as any).affectedRows > 0;
+  },
+
+  // Check if accessory is used in any orders
+  async checkAccessoryUsedInOrders(id: number) {
+    const db = await dbPromise;
+    const [rows] = await db.query(
+      "SELECT * FROM order_items WHERE accessory_id = ?",
+      [id]
+    );
+    return rows;
+  },
+
+
+  async findAccessoryByNameOrNumber(item_name: string, item_number: string, excludeId?: number) {
+    const db = await dbPromise;
+    let query = "SELECT * FROM accessories WHERE (item_name = ? OR item_number = ?)";
+    const params: any[] = [item_name, item_number];
+
+    if (excludeId) {
+      query += " AND id != ?";
+      params.push(excludeId);
+    }
+
+    const [rows] = await db.query(query, params);
+    return rows;
+  },
+
+  async CheckAccessoryUsedInOrders(id: number) {
+    const db = await dbPromise;
+    const [rows] = await db.query(
+      "SELECT * FROM order_items WHERE accessory_id = ?",
+      [id]
+    );
+    return rows;
   }
-
-  const [rows] = await db.query(query, params);
-  return rows;
 };

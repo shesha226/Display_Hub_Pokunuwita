@@ -1,27 +1,21 @@
 import { Router } from "express";
-import {
-  createRepairPart,
-  getAllRepairParts,
-  getRepairPartById,
-  updateRepair,
-  deleteRepairPartById,
-} from "../controller/repairPartsController";
+import { repairController } from "../controller/repairPartsController";
 
 const router = Router();
 
-// Get all repairs
-router.get("/", getAllRepairParts);
 
-// Create a repair
-router.post("/", createRepairPart);
+router.get("/", repairController.getAllRepairs);
 
-// Get repair by ID
-router.get("/:id", getRepairPartById);
 
-// Update repair
-router.put("/:id", updateRepair);
+router.post("/", repairController.createRepair);
 
-// Delete repair
-router.delete("/:id", deleteRepairPartById);
+
+router.get("/:id", repairController.getRepair);
+
+
+router.put("/:id", repairController.updateRepair);
+
+
+router.delete("/:id", repairController.deleteRepair);
 
 export default router;

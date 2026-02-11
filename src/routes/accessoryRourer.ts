@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   createAccessory,
   getAllAccessories,
-  getAccessoryById,
+  getAccessory,
   updateAccessory,
   deleteAccessory,
 } from "../controller/accessoryController";
@@ -10,7 +10,7 @@ import {
 const router = Router();
 
 router.get("/", getAllAccessories);
-router.get("/:id", getAccessoryById);
+router.get("/:id", getAccessory);
 router.post("/", createAccessory);
 router.put("/:id", updateAccessory);
 router.delete("/:id", deleteAccessory);
