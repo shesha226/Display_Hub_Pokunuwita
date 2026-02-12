@@ -36,9 +36,5 @@ export const deleteOrderSchema = z.object({
     }),
 });
 
-export const getOrderByIdSchema = z.object({
-    params: z.object({
-        id: z.number().min(1, "ID is required"),
-    }),
-});
+
 

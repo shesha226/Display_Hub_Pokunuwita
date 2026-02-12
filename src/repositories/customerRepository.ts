@@ -28,36 +28,33 @@ export const CustomerRepository = {
 
   async getCustomerById(id: number) {
     const db = await dbPromise;
-    const [rows] = await db.query(`SELECT id, name, email, address, phone FROM customers WHERE id = ?`, [id]);
-    return (rows as any)[0] || null;
-  },
-
-
-  async getCustomerByEmail(email: string) {
-    const db = await dbPromise;
     const [rows] = await db.query(
-      `SELECT id, name, email, address, phone FROM customers WHERE email = ?`,
-      [email]
+      `SELECT id, name, email, address, phone FROM customers WHERE id = ?`,
+      [id]
     );
     return (rows as any)[0] || null;
   },
 
+
+  async getCustomerByEmail(email: string, excludeId: number) {
+    const db = await dbPromise;
+    const [rows] = await db.query(
+      `SELECT id FROM customers WHERE email = ? AND id != ?`,
+      [email, excludeId]
+    );
+    return (rows as any)[0] || null;
+  },
 
   async updateCustomer(
     id: number,
-    data: {
-      name: string;
-      email: string;
-      address: string;
-      phone: string;
-    }
+    data: { name: string; email: string; address: string; phone: string }
   ) {
     const db = await dbPromise;
-    const [result] = await db.query(
+    await db.query(
       `UPDATE customers SET name = ?, email = ?, address = ?, phone = ? WHERE id = ?`,
       [data.name, data.email, data.address, data.phone, id]
     );
-    return (result as any).affectedRows > 0;
+    return { id, ...data };
   },
 
   async deleteCustomer(id: number) {

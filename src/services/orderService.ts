@@ -1,44 +1,40 @@
 import { OrderRepository } from "../repositories/orderRepository";
 
 class OrderService {
-  async createOrder(data: any) {
-    const existingOrder = await OrderRepository.getOrderByIdRepo(data.id);
-    if (existingOrder) {
-      throw new Error("Order already exists");
-    }
-    return OrderRepository.createOrderRecord(data.customer_id, data.total_amount, data.invoice_number);
+  async createOrder(customer_id: number, total_amount: number) {
+    const invoice_number = await OrderRepository.getNextInvoiceNumber();
+    const orderId = await OrderRepository.createOrderRecord(customer_id, total_amount, invoice_number);
+    const order = await OrderRepository.getOrderById(orderId);
+    return order;
   }
 
   async getAllOrders() {
-    return OrderRepository.getAllOrdersRepo();
+    return OrderRepository.getAllOrders();
   }
 
   async getOrderById(id: number) {
-    const order = await OrderRepository.getOrderByIdRepo(id);
-    if (!order) {
-      throw new Error("Order not found");
-    }
+    const order = await OrderRepository.getOrderById(id);
+    if (!order) throw new Error("Order not found");
     return order;
   }
 
   async updateOrder(id: number, data: any) {
-    const existingOrder = await OrderRepository.getOrderByIdRepo(id);
-    if (!existingOrder) {
-      throw new Error("Order not found");
-    }
-    return OrderRepository.updateOrderRepo(id, {
-      customer_id: data.customer_id ?? existingOrder.customer_id,
-      total_amount: data.total_amount ?? existingOrder.total_amount,
-      invoice_number: data.invoice_number ?? existingOrder.invoice_number,
-    });
+    const success = await OrderRepository.updateOrder(id, data);
+    if (!success) throw new Error("Order not found or update failed");
+    return this.getOrderById(id);
   }
 
   async deleteOrder(id: number) {
-    const existingOrder = await OrderRepository.getOrderByIdRepo(id);
-    if (!existingOrder) {
-      throw new Error("Order not found");
-    }
-    return OrderRepository.deleteOrderRepo(id);
+    const order = await OrderRepository.getOrderById(id);
+    if (!order) throw new Error("Order not found");
+
+    // Delete child rows first (foreign key safety)
+    await OrderRepository.deleteOrderItems(id);
+
+    const success = await OrderRepository.deleteOrder(id);
+    if (!success) throw new Error("Failed to delete order");
+
+    return order;
   }
 }
 

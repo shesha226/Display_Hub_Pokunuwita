@@ -1,62 +1,67 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { orderService } from "../services/orderService";
 
-
-export const createOrderController = async (req: Request, res: Response) => {
+// CREATE ORDER
+export const createOrderController = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const order = await orderService.createOrder(req.body);
-    res.status(201).json({ message: "Order created ✅", order });
+    const { customer_id, total_amount } = req.body;
+    const order = await orderService.createOrder(customer_id, total_amount);
+    res.status(201).json({ message: "Order created successfully ✅", order });
   } catch (err: any) {
-    res.status(400).json({ message: err.message });
+    console.error("Create Order Error:", err);
+    res.status(400).json({ message: err.message || "Internal Server Error" });
   }
 };
 
-export const getAllOrdersController = async (_req: Request, res: Response) => {
+// GET ALL ORDERS
+export const getAllOrdersController = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const orders = await orderService.getAllOrders();
-    res.json({ orders });
-  } catch {
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(200).json({ message: "Orders fetched successfully", orders });
+  } catch (err: any) {
+    console.error("Get All Orders Error:", err);
+    res.status(400).json({ message: err.message || "Internal Server Error" });
   }
 };
 
-
-export const getOrderByIdController = async (req: Request, res: Response) => {
+// GET ORDER BY ID
+export const getOrderByIdController = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid order ID" });
+
     const order = await orderService.getOrderById(id);
-    res.json({ order });
+    res.status(200).json({ message: "Order fetched successfully", order });
   } catch (err: any) {
-    res.status(404).json({ message: err.message });
+    console.error("Get Order By ID Error:", err);
+    res.status(400).json({ message: err.message || "Internal Server Error" });
   }
 };
 
-export const updateOrderController = async (req: Request, res: Response) => {
+// UPDATE ORDER
+export const updateOrderController = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = Number(req.params.id);
-    const { customer_id, items } = req.body;
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid order ID" });
 
-    if (!customer_id || !items) {
-      return res.status(400).json({ message: "Customer ID and items are required" });
-    }
-
-    const existingOrder = await orderService.getOrderById(id);
-    if (!existingOrder) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-    const result = await orderService.updateOrder(id, { customer_id, items });
-    res.json({ message: "Order updated ✅" });
+    const order = await orderService.updateOrder(id, req.body);
+    res.status(200).json({ message: "Order updated successfully ✅", order });
   } catch (err: any) {
-    res.status(400).json({ message: err.message });
+    console.error("Update Order Error:", err);
+    res.status(400).json({ message: err.message || "Internal Server Error" });
   }
 };
 
-export const deleteOrderController = async (req: Request, res: Response) => {
+// DELETE ORDER
+export const deleteOrderController = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = Number(req.params.id);
-    await orderService.deleteOrder(id);
-    res.json({ message: "Order deleted ✅" });
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid order ID" });
+
+    const order = await orderService.deleteOrder(id);
+    res.status(200).json({ message: "Order deleted successfully ✅", order });
   } catch (err: any) {
-    res.status(400).json({ message: err.message });
+    console.error("Delete Order Error:", err);
+    res.status(400).json({ message: err.message || "Internal Server Error" });
   }
 };

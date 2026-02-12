@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { accessoryService } from "../services/accessoryService";
+import dbPromise from "../config/db";
+
 
 export const createAccessory = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -36,27 +38,35 @@ export const getAllAccessories = async (req: Request, res: Response, next: NextF
     next(err);
   }
 }
-
 export const updateAccessory = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const accessory = await accessoryService.updateAccessory(Number(req.params.id), req.body);
+    const id = Number(req.params.id);
+    const accessory = await accessoryService.updateAccessory(id, req.body);
+
     return res.status(200).json({
       message: "Accessory updated successfully",
       accessory
-    })
+    });
   } catch (err: any) {
-    next(err);
+    console.error("Update accessory error:", err);
+    return res.status(err.status || 500).json({
+      message: err.message || "Internal Server Error"
+    });
   }
-}
-
+};
 export const deleteAccessory = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const accessory = await accessoryService.deleteAccessory(Number(req.params.id));
+    const id = Number(req.params.id);
+    const result = await accessoryService.deleteAccessory(id);
+
     return res.status(200).json({
       message: "Accessory deleted successfully",
-      accessory
-    })
+      accessory: result,
+    });
   } catch (err: any) {
-    next(err);
+    console.error("Delete accessory error:", err);
+    return res.status(err.status || 500).json({
+      message: err.message || "Internal Server Error",
+    });
   }
-}
+};

@@ -32,3 +32,8 @@ export const deleteAccessorySchema = z.object({
         id: z.string().min(1, "ID is required")
     })
 })
+export const getAccessoryByIdSchema = z.object({
+    params: z.object({
+        id: z.string().min(1, "ID is required")
+    })
+})

@@ -9,19 +9,19 @@ import {
 
 const router = Router();
 
-// ✅ Get all payments
+
 router.get("/", getAllPayments);
 
-// ✅ Create a new payment
+
 router.post("/", createPayment);
 
-// ✅ Get payments by order id
-router.get("/order/:orderId", getPaymentsByCustomerId);
 
-// ✅ Update payment by ID
+router.get("/order/:id", getPaymentsByCustomerId);
+
+
 router.put("/:id", updatePaymentById);
 
-// ✅ Delete payment by ID
+
 router.delete("/:id", deletePaymentById);
 
 export default router;

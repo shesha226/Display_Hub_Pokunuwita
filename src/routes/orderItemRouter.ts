@@ -1,23 +1,25 @@
 import { Router } from "express";
 import {
   createOrderItem,
-  getOrderItemsByOrderId,
   getOrderItemById,
+  getOrderItems,
   updateOrderItem,
   deleteOrderItem,
 } from "../controller/orderItemController";
+import { validate } from "../middlewares/validate";
+import { createOrderItemSchema, updateOrderItemSchema, deleteOrderItemSchema, getOrderItemSchema } from "../schemas/orederItemSchemas";
 
 const router = Router();
 
-// ✅ Create a new order item
-router.post("/", createOrderItem);
 
-// ✅ Get order items by order id
-router.get("/order/:orderId", getOrderItemsByOrderId);
-// ✅ Get order item by ID
-router.get("/:id", getOrderItemById);
-// ✅ Update order item by ID
-router.put("/:id", updateOrderItem);
-// ✅ Delete order item by ID
-router.delete("/:id", deleteOrderItem);
+router.post("/", validate(createOrderItemSchema), createOrderItem);
+
+
+router.get("/order/:orderId", validate(getOrderItemSchema), getOrderItemById);
+
+router.get("/", getOrderItems);
+
+router.put("/:id", validate(updateOrderItemSchema), updateOrderItem);
+
+router.delete("/:id", validate(deleteOrderItemSchema), deleteOrderItem);
 export default router;

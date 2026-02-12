@@ -7,7 +7,7 @@ import {
   updateUser,
   deleteUser,
 } from "../controller/userController";
-import { authenticate } from "../authMiddleware";
+
 
 const router = Router();
 
@@ -16,9 +16,9 @@ router.post("/register", createUser);
 router.post("/login", loginUser);
 
 // Protected routes
-router.get("/", authenticate, getAllUsers);
-router.get("/:id", authenticate, getUserById);
-router.put("/:id", authenticate, updateUser);
-router.delete("/:id", authenticate, deleteUser);
+router.get("/", getAllUsers);
+router.get("/:id", getUserById);
+router.put("/:id", updateUser);
+router.delete("/:id", deleteUser);
 
 export default router;

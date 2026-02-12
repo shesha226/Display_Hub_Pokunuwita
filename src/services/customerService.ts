@@ -2,7 +2,7 @@ import { CustomerRepository } from "../repositories/customerRepository";
 
 class CustomerService {
   async createCustomer(data: any) {
-    const exisiting = await CustomerRepository.getCustomerByEmail(data.email);
+    const exisiting = await CustomerRepository.getCustomerByEmail(data.email, 0);
     if (exisiting) {
       throw new Error("Customer already exists");
     }
@@ -22,22 +22,25 @@ class CustomerService {
   }
 
   async updateCustomer(id: number, data: any) {
+    // Check if customer exists
     const customer = await CustomerRepository.getCustomerById(id);
-    if (!customer) {
-      throw new Error("Customer not found");
-    }
+    if (!customer) throw new Error("Customer not found");
+
+    // Check for duplicate email
     if (data.email) {
-      const existing = await CustomerRepository.getCustomerByEmail(data.email);
-      if (existing) {
-        throw new Error("Customer already exists");
-      }
+      const existing = await CustomerRepository.getCustomerByEmail(data.email, id);
+      if (existing) throw new Error("Customer email already exists");
     }
-    return CustomerRepository.updateCustomer(id, {
+
+    // Update customer
+    const updatedCustomer = await CustomerRepository.updateCustomer(id, {
       name: data.name ?? customer.name,
       email: data.email ?? customer.email,
-      phone: data.phone ?? customer.phone,
       address: data.address ?? customer.address,
+      phone: data.phone ?? customer.phone,
     });
+
+    return updatedCustomer;
   }
 
   async deleteCustomer(id: number) {
