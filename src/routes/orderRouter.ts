@@ -7,15 +7,14 @@ import {
   deleteOrderController,
 } from "../controller/orderController";
 
-import { validate } from "../middlewares/validate";
-import { createOrderSchema, updateOrderSchema, deleteOrderSchema, } from "../schemas/orderSchemas";
+
 
 const router = Router();
 
-router.post("/", validate(createOrderSchema), createOrderController);
+router.post("/", createOrderController);
 router.get("/", getAllOrdersController);
 router.get("/:id", getOrderByIdController);
-router.put("/:id", validate(updateOrderSchema), updateOrderController);
+router.put("/:id", updateOrderController);
 router.delete("/:id", deleteOrderController);
 
 export default router;

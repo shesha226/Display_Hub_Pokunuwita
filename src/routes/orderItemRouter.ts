@@ -15,7 +15,7 @@ const router = Router();
 router.post("/", validate(createOrderItemSchema), createOrderItem);
 
 
-router.get("/order/:orderId", validate(getOrderItemSchema), getOrderItemById);
+router.get("/order/:orderId", getOrderItemById);
 
 router.get("/", getOrderItems);
 

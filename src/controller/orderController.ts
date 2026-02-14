@@ -1,67 +1,57 @@
 import { Request, Response, NextFunction } from "express";
-import { orderService } from "../services/orderService";
+import { OrderService } from "../services/orderService";
 
-// CREATE ORDER
+// Create order
 export const createOrderController = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { customer_id, total_amount } = req.body;
-    const order = await orderService.createOrder(customer_id, total_amount);
-    res.status(201).json({ message: "Order created successfully ✅", order });
+    const { customer_id, items } = req.body;
+    const result = await OrderService.createOrder(customer_id, items);
+    res.status(201).json({ message: "Order created", ...result });
   } catch (err: any) {
-    console.error("Create Order Error:", err);
-    res.status(400).json({ message: err.message || "Internal Server Error" });
+    next(err);
   }
 };
 
-// GET ALL ORDERS
-export const getAllOrdersController = async (_req: Request, res: Response, next: NextFunction) => {
+// Get all orders
+export const getAllOrdersController = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const orders = await orderService.getAllOrders();
-    res.status(200).json({ message: "Orders fetched successfully", orders });
+    const orders = await OrderService.getAllOrders();
+    res.status(200).json({ orders });
   } catch (err: any) {
-    console.error("Get All Orders Error:", err);
-    res.status(400).json({ message: err.message || "Internal Server Error" });
+    next(err);
   }
 };
 
-// GET ORDER BY ID
+// Get single order by ID
 export const getOrderByIdController = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = Number(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid order ID" });
-
-    const order = await orderService.getOrderById(id);
-    res.status(200).json({ message: "Order fetched successfully", order });
+    const order = await OrderService.getOrderById(id);
+    res.status(200).json(order);
   } catch (err: any) {
-    console.error("Get Order By ID Error:", err);
-    res.status(400).json({ message: err.message || "Internal Server Error" });
+    next(err);
   }
 };
 
-// UPDATE ORDER
+// Update order
 export const updateOrderController = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = Number(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid order ID" });
-
-    const order = await orderService.updateOrder(id, req.body);
-    res.status(200).json({ message: "Order updated successfully ✅", order });
+    const { customer_id, items } = req.body;
+    const result = await OrderService.updateOrder(id, customer_id, items);
+    res.status(200).json({ message: "Order updated", ...result });
   } catch (err: any) {
-    console.error("Update Order Error:", err);
-    res.status(400).json({ message: err.message || "Internal Server Error" });
+    next(err);
   }
 };
 
-// DELETE ORDER
+// Delete order
 export const deleteOrderController = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = Number(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid order ID" });
-
-    const order = await orderService.deleteOrder(id);
-    res.status(200).json({ message: "Order deleted successfully ✅", order });
+    await OrderService.deleteOrder(id);
+    res.status(200).json({ message: "Order deleted" });
   } catch (err: any) {
-    console.error("Delete Order Error:", err);
-    res.status(400).json({ message: err.message || "Internal Server Error" });
+    next(err);
   }
 };

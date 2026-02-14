@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { orderItemService } from "../services/orderItemService";
 
 
-export const createOrderItem = async (req: Request, res: Response , Next:NextFunction) => {
+export const createOrderItem = async (req: Request, res: Response, Next: NextFunction) => {
   try {
     const id = await orderItemService.createOrderItem(req.body);
     return res
@@ -15,7 +15,7 @@ export const createOrderItem = async (req: Request, res: Response , Next:NextFun
 };
 
 
-export const getOrderItems = async (req: Request, res: Response , Next:NextFunction) => {
+export const getOrderItems = async (req: Request, res: Response, Next: NextFunction) => {
   try {
     const items = await orderItemService.getAllOrderItems();
     return res.json(items);
@@ -25,7 +25,7 @@ export const getOrderItems = async (req: Request, res: Response , Next:NextFunct
   }
 };
 
-export const getOrderItemById = async (req: Request, res: Response , Next:NextFunction) => {
+export const getOrderItemById = async (req: Request, res: Response, Next: NextFunction) => {
   try {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
@@ -41,7 +41,7 @@ export const getOrderItemById = async (req: Request, res: Response , Next:NextFu
 };
 
 
-export const updateOrderItem = async (req: Request, res: Response , Next:NextFunction) => {
+export const updateOrderItem = async (req: Request, res: Response, Next: NextFunction) => {
   try {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
@@ -57,7 +57,7 @@ export const updateOrderItem = async (req: Request, res: Response , Next:NextFun
 };
 
 
-export const deleteOrderItem = async (req: Request, res: Response , Next:NextFunction) => {
+export const deleteOrderItem = async (req: Request, res: Response, Next: NextFunction) => {
   try {
     const id = Number(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
