@@ -2,7 +2,7 @@ import dbPromise from "../config/db";
 
 export const AccessoryRepository = {
 
-  async findByName(item_name: string) {
+  async  findByName(item_name: string) {
     const db = await dbPromise;
     const [rows]: any = await db.query(
       "SELECT * FROM accessories WHERE item_name = ?",

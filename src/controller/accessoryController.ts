@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { accessoryService } from "../services/accessoryService";
-import dbPromise from "../config/db";
+
 
 
 export const createAccessory = async (req: Request, res: Response, next: NextFunction) => {

@@ -1,20 +1,28 @@
-import { Router } from "express";
+import express from "express";
+// මෙතන path එක ඔයාගේ folder නමට හරියටම ගැලපෙන්න ඕනේ.
 import {
-  createOrderController,
-  getAllOrdersController,
-  getOrderByIdController,
-  updateOrderController,
-  deleteOrderController,
+  getOrders,
+  getOrderById,
+  createOrder,
+  updateOrder,
+  deleteOrder,
 } from "../controller/orderController";
 
+const router = express.Router();
 
+// Get all orders
+router.get("/", getOrders);
 
-const router = Router();
+// Get single order by ID
+router.get("/:id", getOrderById);
 
-router.post("/", createOrderController);
-router.get("/", getAllOrdersController);
-router.get("/:id", getOrderByIdController);
-router.put("/:id", updateOrderController);
-router.delete("/:id", deleteOrderController);
+// Create a new order
+router.post("/", createOrder);
+
+// Update an order
+router.put("/:id", updateOrder);
+
+// Delete an order
+router.delete("/:id", deleteOrder);
 
 export default router;

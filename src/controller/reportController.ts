@@ -3,49 +3,68 @@ import dbPromise from "../config/db";
 
 /**
  * GET /reports/all
- * Returns 1 day, 7 days, 1 month, 6 months, 1 year reports
+ * Returns report data based on the requested range (today, 7d, 30d, 3m, 1y)
  */
 export const getAllReports = async (req: Request, res: Response) => {
   try {
     const pool = await dbPromise;
 
-    const [rows]: any = await pool.query(`
-      SELECT
-        SUM(CASE WHEN DATE(created_at) = CURDATE() THEN repair_cost ELSE 0 END) AS day_profit,
-        SUM(CASE WHEN created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN repair_cost ELSE 0 END) AS week_profit,
-        SUM(CASE WHEN created_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN repair_cost ELSE 0 END) AS month_profit,
-        SUM(CASE WHEN created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) THEN repair_cost ELSE 0 END) AS half_year_profit,
-        SUM(CASE WHEN created_at >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR) THEN repair_cost ELSE 0 END) AS year_profit,
+    const range = (req.query.range as string) || "7d";
 
-        COUNT(CASE WHEN DATE(created_at) = CURDATE() THEN 1 END) AS day_items,
-        COUNT(CASE WHEN created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN 1 END) AS week_items,
-        COUNT(CASE WHEN created_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN 1 END) AS month_items,
-        COUNT(CASE WHEN created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) THEN 1 END) AS half_year_items,
-        COUNT(CASE WHEN created_at >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR) THEN 1 END) AS year_items
+    let dateFilter = "created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+    if (range === "today") {
+      dateFilter = "DATE(created_at) = CURDATE()";
+    } else if (range === "30d") {
+      dateFilter = "created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
+    } else if (range === "3m") {
+      dateFilter = "created_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)";
+    } else if (range === "1y") {
+      dateFilter = "created_at >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)";
+    }
+
+    // 1. Total Data
+    const [totals]: any = await pool.query(`
+      SELECT
+        SUM(repair_cost) AS total_revenue,
+        SUM(repair_cost) AS total_profit,
+        COUNT(*) AS total_items_sold
       FROM repairs
+      WHERE ${dateFilter} AND status = 'completed' 
+    `);
+
+    // 2. Daily Data (Error එක හැදුවේ මෙතනයි)
+    // GROUP BY සහ ORDER BY යන දෙකම SELECT කරන DATE_FORMAT එකට සමාන කර ඇත.
+    const [dailyData]: any = await pool.query(`
+      SELECT
+        DATE_FORMAT(created_at, '%Y-%m-%d') AS date,
+        SUM(repair_cost) AS profit,
+        SUM(repair_cost) AS revenue,
+        COUNT(*) AS items_sold
+      FROM repairs
+      WHERE ${dateFilter} AND status = 'completed'
+      GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d')
+      ORDER BY DATE_FORMAT(created_at, '%Y-%m-%d') ASC
+    `);
+
+    // 3. Top Items
+    const [topItems]: any = await pool.query(`
+      SELECT
+        phone_model AS name,
+        COUNT(*) AS qty,
+        SUM(repair_cost) AS revenue
+      FROM repairs
+      WHERE ${dateFilter} AND status = 'completed'
+      GROUP BY phone_model
+      ORDER BY qty DESC
+      LIMIT 5
     `);
 
     res.json({
-      day: {
-        total_profit: Number(rows[0].day_profit),
-        total_items_sold: Number(rows[0].day_items),
-      },
-      week: {
-        total_profit: Number(rows[0].week_profit),
-        total_items_sold: Number(rows[0].week_items),
-      },
-      month: {
-        total_profit: Number(rows[0].month_profit),
-        total_items_sold: Number(rows[0].month_items),
-      },
-      half_year: {
-        total_profit: Number(rows[0].half_year_profit),
-        total_items_sold: Number(rows[0].half_year_items),
-      },
-      year: {
-        total_profit: Number(rows[0].year_profit),
-        total_items_sold: Number(rows[0].year_items),
-      },
+      total_profit: Number(totals[0]?.total_profit) || 0,
+      total_revenue: Number(totals[0]?.total_revenue) || 0,
+      total_items_sold: Number(totals[0]?.total_items_sold) || 0,
+      daily_data: dailyData || [],
+      top_items: topItems || [],
     });
   } catch (error) {
     console.error(error);

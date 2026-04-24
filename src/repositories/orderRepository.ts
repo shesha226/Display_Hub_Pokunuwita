@@ -2,7 +2,11 @@ import dbPromise from "../config/db";
 
 export const OrderRepository = {
   // Create a new order
-  async createOrderRecord(customer_id: number, total_amount: number, invoice_number: string) {
+  async createOrderRecord(
+    customer_id: number,
+    total_amount: number,
+    invoice_number: string
+  ) {
     const db = await dbPromise;
     const [result]: any = await db.query(
       "INSERT INTO orders (customer_id, total_amount, invoice_number) VALUES (?, ?, ?)",
@@ -52,7 +56,10 @@ export const OrderRepository = {
   },
 
   // Update an order
-  async updateOrder(id: number, data: { customer_id: number, total_amount: number, invoice_number: string }) {
+  async updateOrder(
+    id: number,
+    data: { customer_id: number; total_amount: number; invoice_number: string }
+  ) {
     const db = await dbPromise;
     const [result]: any = await db.query(
       "UPDATE orders SET customer_id = ?, total_amount = ?, invoice_number = ? WHERE id = ?",
@@ -70,15 +77,31 @@ export const OrderRepository = {
   // Delete an order
   async deleteOrder(id: number) {
     const db = await dbPromise;
-    const [result]: any = await db.query("DELETE FROM orders WHERE id = ?", [id]);
+    const [result]: any = await db.query("DELETE FROM orders WHERE id = ?", [
+      id,
+    ]);
     return result.affectedRows > 0;
   },
 
   // Create multiple order items
-  async createOrderItems(order_id: number, items: { accessory_id: number, quantity: number, price: number, discount: number }[]) {
+  async createOrderItems(
+    order_id: number,
+    items: {
+      accessory_id: number;
+      quantity: number;
+      price: number;
+      discount: number;
+    }[]
+  ) {
     if (items.length === 0) return;
     const db = await dbPromise;
-    const itemsToInsert = items.map(i => [order_id, i.accessory_id, i.quantity, i.price, i.discount]);
+    const itemsToInsert = items.map((i) => [
+      order_id,
+      i.accessory_id,
+      i.quantity,
+      i.price,
+      i.discount,
+    ]);
     await db.query(
       "INSERT INTO order_items (order_id, accessory_id, quantity, price, discount) VALUES ?",
       [itemsToInsert]
@@ -90,12 +113,42 @@ export const OrderRepository = {
     const db = await dbPromise;
     const [rows]: any = await db.query(
       `SELECT oi.id, a.item_name, oi.quantity, oi.price, oi.discount,
-              (oi.quantity * (oi.price - oi.discount)) AS final_price
+              (oi.quantity * (oi.price - oi.discount)) AS final_price,
+              oi.accessory_id
        FROM order_items oi
        LEFT JOIN accessories a ON oi.accessory_id = a.id
        WHERE oi.order_id = ?`,
       [order_id]
     );
     return rows;
-  }
+  },
+
+  // ==========================================
+  // Customer කෙනෙක්ව හොයන හෝ අලුතින් හදන Function එක
+  // ==========================================
+  // ==========================================
+  // Customer කෙනෙක්ව හොයන හෝ අලුතින් හදන Function එක
+  // ==========================================
+  async getOrCreateCustomer(name: string, phone: string) {
+    const db = await dbPromise;
+
+    // 1. ෆෝන් නම්බර් එකෙන් හරි නමෙන් හරි ඉන්නවද බලනවා
+    const [existing]: any = await db.query(
+      "SELECT id FROM customers WHERE phone = ? OR name = ? LIMIT 1",
+      [phone || null, name]
+    );
+
+    if (existing.length > 0) {
+      return existing[0].id; // හිටියොත් පරණ ID එක දෙනවා
+    }
+
+    // 2. හිටියේ නැත්නම් අලුතින් Save කරනවා (Email එකට හිස් අගයක් යවනවා)
+    const [result]: any = await db.query(
+      "INSERT INTO customers (name, phone, email) VALUES (?, ?, ?)",
+      [name, phone || "", ""]
+    );
+    return result.insertId;
+  },
 };
+
+export default OrderRepository;
